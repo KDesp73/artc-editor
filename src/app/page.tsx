@@ -44,6 +44,7 @@ end`);
   const [view, setView] = useState("editor");
 
   const runScript = async () => {
+    // const service = "http://localhost:9876"
     const service = "https://b5d2-91-140-25-65.ngrok-free.app"
     const res = await fetch(`${service}/render`, {
       method: "POST",
@@ -52,10 +53,12 @@ end`);
     });
 
     const data = await res.json();
-    if (data.url) {
-      console.log(data.video);
-      setVideoUrl(data.video);
+    if (data.video_url) {
+      console.log(`${service}${data.video_url}`);
+      setVideoUrl(`${service}${data.video_url}`);
       setView("output");
+    } else {
+        console.error("No response received");
     }
   };
 
