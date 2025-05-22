@@ -44,7 +44,7 @@ end`);
   const [view, setView] = useState("editor");
 
   const runScript = async () => {
-    const res = await fetch("/api/run-artc", {
+    const res = await fetch("https://1cd5-91-140-25-65.ngrok-free.app/render", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ script, duration: 10 }),
@@ -52,8 +52,8 @@ end`);
 
     const data = await res.json();
     if (data.url) {
-      console.log(data.url);
-      setVideoUrl(data.url);
+      console.log(data.video);
+      setVideoUrl(data.video);
       setView("output");
     }
   };
@@ -84,7 +84,7 @@ end`);
               <Textarea
                 value={script}
                 onChange={(e) => setScript(e.target.value)}
-                className="h-64 font-mono"
+                className="h-100% font-mono"
               />
               <div className="flex gap-2">
                 <Button onClick={runScript}>
