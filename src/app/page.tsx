@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Play, Download } from "lucide-react";
+import { Play, Download, Loader2 } from "lucide-react";
 
 export default function ArtcLuaEditor() {
   const [script, setScript] = useState(`-- artc example script
@@ -16,8 +16,8 @@ seed(73)
 function setup()
     local cx = 1080 / 2
     local cy = 720 / 2
-    local radius = 200      -- Distance from center
-    local count = 20        -- Number of circles
+    local radius = 200
+    local count = 20
     local size = 20
 
     for i = 1, count do
@@ -42,24 +42,34 @@ function setup()
 end`);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [view, setView] = useState("editor");
+  const [loading, setLoading] = useState(false);
 
   const runScript = async () => {
-    // const service = "http://localhost:9876"
-    const service = "https://b5d2-91-140-25-65.ngrok-free.app"
-    const res = await fetch(`${service}/render`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ script, duration: 10 }),
-    });
+    setLoading(true);
+    setVideoUrl(null);
+    setView("output");
 
-    const data = await res.json();
-    if (data.video_url) {
-      console.log(`${service}${data.video_url}`);
-      setVideoUrl(`${service}${data.video_url}`);
-      setView("output");
-    } else {
-        console.error("No response received");
+    try {
+      const service = "https://b5d2-91-140-25-65.ngrok-free.app";
+      const res = await fetch(`${service}/render`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ script, duration: 10 }),
+      });
+
+      const data = await res.json();
+      if (data.video_url) {
+        const video = `${service}${data.video_url}`;
+        console.log("Video URL: ", video);
+        setVideoUrl(video);
+      } else {
+        console.error("No video_url in response");
+      }
+    } catch (err) {
+      console.error("Failed to render script", err);
     }
+
+    setLoading(false);
   };
 
   const exportScript = () => {
@@ -91,10 +101,18 @@ end`);
                 className="h-100% font-mono"
               />
               <div className="flex gap-2">
-                <Button onClick={runScript}>
-                  <Play className="w-4 h-4 mr-1" /> Run
+                <Button onClick={runScript} disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Running...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-1" /> Run
+                    </>
+                  )}
                 </Button>
-                <Button onClick={exportScript} variant="secondary">
+                <Button onClick={exportScript} variant="secondary" disabled={loading}>
                   <Download className="w-4 h-4 mr-1" /> Export
                 </Button>
               </div>
@@ -105,8 +123,13 @@ end`);
         <TabsContent value="output">
           <Card>
             <CardContent className="p-2">
-              {videoUrl ? (
-                <video src={videoUrl} controls className="w-full h-64" />
+              {loading ? (
+                <p className="text-sm text-gray-500 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Rendering video...
+                </p>
+              ) : videoUrl ? (
+                <video src={videoUrl} controls className="w-full h-64" crossOrigin="anonymous"/>
               ) : (
                 <p className="text-sm text-gray-500">No video generated yet.</p>
               )}
