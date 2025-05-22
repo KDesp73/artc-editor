@@ -40,9 +40,11 @@ function setup()
         })
     end
 end`);
+
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [view, setView] = useState("editor");
   const [loading, setLoading] = useState(false);
+  const [duration, setDuration] = useState(10);
 
   const runScript = async () => {
     setLoading(true);
@@ -54,7 +56,7 @@ end`);
       const res = await fetch(`${service}/render`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script, duration: 10 }),
+        body: JSON.stringify({ script, duration }),
       });
 
       const data = await res.json();
@@ -86,19 +88,32 @@ end`);
     if (!videoUrl) return;
   
     try {
-      const res = await fetch(videoUrl);
-      if (!res.ok) throw new Error("Failed to fetch video");
+      setLoading(true);
+      const response = await fetch(videoUrl, {
+          mode: "cors",
+      });
   
-      const blob = await res.blob();
+      if (!response.ok) throw new Error(`Failed to fetch video: ${response.statusText}`);
+  
+      const blob = await response.blob();
+  
+      if (blob.size === 0) throw new Error("Downloaded video is empty");
+  
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
+      a.style.display = "none";
       a.href = url;
       a.download = "artc_video.mp4";
       document.body.appendChild(a);
       a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+  
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        setLoading(false);
+      }, 100);
     } catch (error) {
+      setLoading(false);
       console.error("Error downloading video:", error);
     }
   };
@@ -121,7 +136,20 @@ end`);
                 onChange={(e) => setScript(e.target.value)}
                 className="h-100% font-mono"
               />
-              <div className="flex gap-2">
+              <div className="flex items-center gap-4">
+                <label>
+                  Duration (seconds):
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={duration}
+                    onChange={(e) => setDuration(Number(e.target.value))}
+                    className="ml-2 w-20 border rounded px-2 py-1"
+                    disabled={loading}
+                  />
+                </label>
+
                 <Button onClick={runScript} disabled={loading}>
                   {loading ? (
                     <>
@@ -133,6 +161,7 @@ end`);
                     </>
                   )}
                 </Button>
+
                 <Button onClick={exportScript} variant="secondary" disabled={loading}>
                   <Download className="w-4 h-4 mr-1" /> Export Script
                 </Button>
@@ -158,7 +187,7 @@ end`);
                     crossOrigin="anonymous"
                   />
                   <div className="mt-2 flex gap-2">
-                    <Button onClick={downloadVideo} variant="secondary">
+                    <Button onClick={downloadVideo}>
                       <Download className="w-4 h-4 mr-1" /> Download Video
                     </Button>
                   </div>
