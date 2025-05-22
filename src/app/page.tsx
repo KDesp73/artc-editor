@@ -44,7 +44,8 @@ end`);
   const [view, setView] = useState("editor");
 
   const runScript = async () => {
-    const res = await fetch("https://721e-109-242-92-112.ngrok-free.app/render", {
+    const service = "https://b5d2-91-140-25-65.ngrok-free.app"
+    const res = await fetch(`${service}/render`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ script, duration: 10 }),
