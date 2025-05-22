@@ -9,26 +9,53 @@ import { Play, Download } from "lucide-react";
 
 export default function ArtcLuaEditor() {
   const [script, setScript] = useState(`-- artc example script
+window(1080, 720)
+bg("#000000")
+seed(73)
+
 function setup()
-  add_circle(100, 100, 30, {r=255, g=100, b=200}, MOTION_SPIN)
+    local cx = 1080 / 2
+    local cy = 720 / 2
+    local radius = 200      -- Distance from center
+    local count = 20        -- Number of circles
+    local size = 20
+
+    for i = 1, count do
+        local angle = (i / count) * (2 * math.pi)
+        local x = cx + math.cos(angle) * radius
+        local y = cy + math.sin(angle) * radius
+
+        local r = 127 + math.sin(i)     * 127
+        local g = 127 + math.sin(i + 2) * 127
+        local b = 127 + math.sin(i + 4) * 127
+
+        circle({
+            x = x,
+            y = y,
+            size = size,
+            color = hex({ r = r, g = g, b = b }),
+            motion = "pulse",
+            radius = 20 + i * 3/2,
+            speed = 2,
+        })
+    end
 end`);
-  const [output, setOutput] = useState("");
-  const [view, setView] = useState("output");
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [view, setView] = useState("editor");
 
   const runScript = async () => {
-    try {
-      const response = await fetch("/api/run-artc", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script })
-      });
+    const res = await fetch("/api/run-artc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ script }),
+    });
 
-      const data = await response.json();
-      setOutput(data.output || "No output returned.");
-    } catch (err) {
-      setOutput(`Error: ${err.message}`);
+    const data = await res.json();
+    if (data.url) {
+      console.log(data.url);
+      setVideoUrl(data.url);
+      setView("output");
     }
-    setView("output");
   };
 
   const exportScript = () => {
@@ -73,8 +100,12 @@ end`);
 
         <TabsContent value="output">
           <Card>
-            <CardContent className="p-2 font-mono whitespace-pre-wrap text-sm bg-black text-green-400 h-64 overflow-auto">
-              {output || "No output yet."}
+            <CardContent className="p-2">
+              {videoUrl ? (
+                <video src={videoUrl} controls className="w-full h-64" />
+              ) : (
+                <p className="text-sm text-gray-500">No video generated yet.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

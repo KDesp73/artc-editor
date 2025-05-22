@@ -19,12 +19,13 @@ export async function POST(req: NextRequest) {
         const filepath = path.join(os.tmpdir(), filename);
         await writeFile(filepath, script, "utf-8");
 
-        const { stdout, stderr } = await execAsync(`artc ${filepath}`);
+        const { stdout, stderr } = await execAsync(`./bin/artc ${filepath} -x -o ./public/videos/${filename}.mp4`);
 
         await unlink(filepath);
 
         return Response.json({
             output: stdout + (stderr ? `\n[stderr]\n${stderr}` : ""),
+            url: `/videos/${filename}.mp4`
         });
     } catch (err: any) {
         return Response.json({
