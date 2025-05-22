@@ -52,6 +52,7 @@ end`);
     setView("output");
 
     try {
+      // const service = "http://localhost:9876";
       const service = "https://b5d2-91-140-25-65.ngrok-free.app";
       const res = await fetch(`${service}/render`, {
         method: "POST",
@@ -61,7 +62,7 @@ end`);
 
       const data = await res.json();
       if (data.video_url) {
-        const video = `${service}${data.video_url}`;
+        const video = `${data.video_url}`;
         console.log("Video URL: ", video);
         setVideoUrl(video);
       } else {
@@ -84,39 +85,39 @@ end`);
     URL.revokeObjectURL(url);
   };
 
-  const downloadVideo = async () => {
-    if (!videoUrl) return;
-  
-    try {
-      setLoading(true);
-      const response = await fetch(videoUrl, {
-          mode: "cors",
-      });
-  
-      if (!response.ok) throw new Error(`Failed to fetch video: ${response.statusText}`);
-  
-      const blob = await response.blob();
-  
-      if (blob.size === 0) throw new Error("Downloaded video is empty");
-  
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
-      a.download = "artc_video.mp4";
-      document.body.appendChild(a);
-      a.click();
-  
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        setLoading(false);
-      }, 100);
-    } catch (error) {
-      setLoading(false);
-      console.error("Error downloading video:", error);
-    }
-  };
+  // const downloadVideo = async () => {
+  //   if (!videoUrl) return;
+  // 
+  //   try {
+  //     setLoading(true);
+  //     const response = await fetch(videoUrl, {
+  //         mode: "cors",
+  //     });
+  // 
+  //     if (!response.ok) throw new Error(`Failed to fetch video: ${response.statusText}`);
+  // 
+  //     const blob = await response.blob();
+  // 
+  //     if (blob.size === 0) throw new Error("Downloaded video is empty");
+  // 
+  //     const url = window.URL.createObjectURL(blob);
+  //     const a = document.createElement("a");
+  //     a.style.display = "none";
+  //     a.href = url;
+  //     a.download = "artc_video.mp4";
+  //     document.body.appendChild(a);
+  //     a.click();
+  // 
+  //     setTimeout(() => {
+  //       document.body.removeChild(a);
+  //       window.URL.revokeObjectURL(url);
+  //       setLoading(false);
+  //     }, 100);
+  //   } catch (error) {
+  //     setLoading(false);
+  //     console.error("Error downloading video:", error);
+  //   }
+  // };
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-4">
@@ -186,11 +187,12 @@ end`);
                     className="w-full h-64"
                     crossOrigin="anonymous"
                   />
-                  <div className="mt-2 flex gap-2">
-                    <Button onClick={downloadVideo}>
-                      <Download className="w-4 h-4 mr-1" /> Download Video
+                  <a href={videoUrl} download="artc_video.mp4">
+                    <Button variant="default">
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
                     </Button>
-                  </div>
+                  </a>
                 </>
               ) : (
                 <p className="text-sm text-gray-500">No video generated yet.</p>
