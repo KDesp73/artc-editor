@@ -82,6 +82,14 @@ end`);
     URL.revokeObjectURL(url);
   };
 
+  const downloadVideo = () => {
+    if (!videoUrl) return;
+    const a = document.createElement("a");
+    a.href = videoUrl;
+    a.download = "artc_video.mp4";
+    a.click();
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <h1 className="text-2xl font-bold">Artc Lua Script Editor</h1>
@@ -113,7 +121,7 @@ end`);
                   )}
                 </Button>
                 <Button onClick={exportScript} variant="secondary" disabled={loading}>
-                  <Download className="w-4 h-4 mr-1" /> Export
+                  <Download className="w-4 h-4 mr-1" /> Export Script
                 </Button>
               </div>
             </CardContent>
@@ -122,14 +130,26 @@ end`);
 
         <TabsContent value="output">
           <Card>
-            <CardContent className="p-2">
+            <CardContent className="p-2 space-y-2">
               {loading ? (
                 <p className="text-sm text-gray-500 flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Rendering video...
                 </p>
               ) : videoUrl ? (
-                <video src={videoUrl} controls className="w-full h-64" crossOrigin="anonymous"/>
+                <>
+                  <video
+                    src={videoUrl}
+                    controls
+                    className="w-full h-64"
+                    crossOrigin="anonymous"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <Button onClick={downloadVideo} variant="secondary">
+                      <Download className="w-4 h-4 mr-1" /> Download Video
+                    </Button>
+                  </div>
+                </>
               ) : (
                 <p className="text-sm text-gray-500">No video generated yet.</p>
               )}
