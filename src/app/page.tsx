@@ -47,7 +47,7 @@ end`);
     const res = await fetch("/api/run-artc", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ script }),
+      body: JSON.stringify({ script, duration: 10 }),
     });
 
     const data = await res.json();

@@ -9,7 +9,7 @@ const execAsync = promisify(exec);
 
 export async function POST(req: NextRequest) {
     try {
-        const { script } = await req.json();
+        const { script, duration } = await req.json();
 
         if (typeof script !== "string") {
             return new Response("Invalid script", { status: 400 });
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
         const filepath = path.join(os.tmpdir(), filename);
         await writeFile(filepath, script, "utf-8");
 
-        const { stdout, stderr } = await execAsync(`./bin/artc ${filepath} -x -o ./public/videos/${filename}.mp4`);
+        const { stdout, stderr } = await execAsync(`./bin/artc ${filepath} -x -o ./public/videos/${filename}.mp4 -d ${duration}`);
 
         await unlink(filepath);
 
