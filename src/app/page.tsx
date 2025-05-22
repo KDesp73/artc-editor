@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Play, Download, Loader2 } from "lucide-react";
 import Editor from "@monaco-editor/react";
+import { Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 
 export default function ArtcLuaEditor() {
+  const { theme, setTheme } = useTheme();
+
   const [script, setScript] = useState(`-- artc example script
 window(1080, 720)
 bg("#000000")
@@ -45,6 +49,18 @@ end`);
   const [view, setView] = useState("editor");
   const [loading, setLoading] = useState(false);
   const [duration, setDuration] = useState(10);
+  
+  // Monaco theme state synced with next-themes theme
+  const [monacoTheme, setMonacoTheme] = useState<"vs-dark" | "light">("vs-dark");
+
+  // Sync monacoTheme with current theme on mount and theme change
+  useEffect(() => {
+    if (theme === "dark") {
+      setMonacoTheme("vs-dark");
+    } else {
+      setMonacoTheme("light");
+    }
+  }, [theme]);
 
   const runScript = async () => {
     setLoading(true);
@@ -56,14 +72,12 @@ end`);
       const res = await fetch(`${service}/render`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script, duration: duration*2 }), // NOTE: Service returns video with half the duration
+        body: JSON.stringify({ script, duration: duration * 2 }), // Service returns video with half duration
       });
 
       const data = await res.json();
       if (data.video_url) {
-        const video = `${data.video_url}`;
-        console.log("Video URL: ", video);
-        setVideoUrl(video);
+        setVideoUrl(data.video_url);
       } else {
         console.error("No video_url in response");
       }
@@ -89,9 +103,7 @@ end`);
 
     try {
       setLoading(true);
-      const response = await fetch(videoUrl, {
-        mode: "cors",
-      });
+      const response = await fetch(videoUrl, { mode: "cors" });
 
       if (!response.ok) throw new Error(`Failed to fetch video: ${response.statusText}`);
 
@@ -118,9 +130,20 @@ end`);
     }
   };
 
+  // Theme toggle handler
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Artc Lua Script Editor</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Artc Lua Script Editor</h1>
+        <Button variant="ghost" onClick={toggleTheme} className="flex items-center gap-2">
+          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {theme === "dark" ? "Light" : "Dark"}
+        </Button>
+      </div>
 
       <Tabs value={view} onValueChange={setView} className="space-y-2">
         <TabsList>
@@ -131,10 +154,10 @@ end`);
         <TabsContent value="editor">
           <Card>
             <CardContent className="p-2 space-y-2">
-            
               <Editor
-                height="400px"
+                height="70vh"
                 defaultLanguage="lua"
+                theme={monacoTheme}
                 value={script}
                 onChange={(val) => setScript(val || "")}
               />
