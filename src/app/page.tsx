@@ -82,12 +82,25 @@ end`);
     URL.revokeObjectURL(url);
   };
 
-  const downloadVideo = () => {
+  const downloadVideo = async () => {
     if (!videoUrl) return;
-    const a = document.createElement("a");
-    a.href = videoUrl;
-    a.download = "artc_video.mp4";
-    a.click();
+  
+    try {
+      const res = await fetch(videoUrl);
+      if (!res.ok) throw new Error("Failed to fetch video");
+  
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "artc_video.mp4";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading video:", error);
+    }
   };
 
   return (
