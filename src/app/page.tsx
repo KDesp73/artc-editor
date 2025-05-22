@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Play, Download, Loader2 } from "lucide-react";
+import Editor from "@monaco-editor/react";
 
 export default function ArtcLuaEditor() {
   const [script, setScript] = useState(`-- artc example script
@@ -52,12 +53,11 @@ end`);
     setView("output");
 
     try {
-      // const service = "http://localhost:9876";
       const service = "https://b5d2-91-140-25-65.ngrok-free.app";
       const res = await fetch(`${service}/render`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script, duration }),
+        body: JSON.stringify({ script, duration: duration*2 }), // NOTE: Service returns video with half the duration
       });
 
       const data = await res.json();
@@ -85,39 +85,39 @@ end`);
     URL.revokeObjectURL(url);
   };
 
-  // const downloadVideo = async () => {
-  //   if (!videoUrl) return;
-  // 
-  //   try {
-  //     setLoading(true);
-  //     const response = await fetch(videoUrl, {
-  //         mode: "cors",
-  //     });
-  // 
-  //     if (!response.ok) throw new Error(`Failed to fetch video: ${response.statusText}`);
-  // 
-  //     const blob = await response.blob();
-  // 
-  //     if (blob.size === 0) throw new Error("Downloaded video is empty");
-  // 
-  //     const url = window.URL.createObjectURL(blob);
-  //     const a = document.createElement("a");
-  //     a.style.display = "none";
-  //     a.href = url;
-  //     a.download = "artc_video.mp4";
-  //     document.body.appendChild(a);
-  //     a.click();
-  // 
-  //     setTimeout(() => {
-  //       document.body.removeChild(a);
-  //       window.URL.revokeObjectURL(url);
-  //       setLoading(false);
-  //     }, 100);
-  //   } catch (error) {
-  //     setLoading(false);
-  //     console.error("Error downloading video:", error);
-  //   }
-  // };
+  const downloadVideo = async () => {
+    if (!videoUrl) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(videoUrl, {
+        mode: "cors",
+      });
+
+      if (!response.ok) throw new Error(`Failed to fetch video: ${response.statusText}`);
+
+      const blob = await response.blob();
+
+      if (blob.size === 0) throw new Error("Downloaded video is empty");
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = "artc_video.mp4";
+      document.body.appendChild(a);
+      a.click();
+
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        setLoading(false);
+      }, 100);
+    } catch (error) {
+      setLoading(false);
+      console.error("Error downloading video:", error);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-4">
@@ -132,10 +132,12 @@ end`);
         <TabsContent value="editor">
           <Card>
             <CardContent className="p-2 space-y-2">
-              <Textarea
+            
+              <Editor
+                height="400px"
+                defaultLanguage="lua"
                 value={script}
-                onChange={(e) => setScript(e.target.value)}
-                className="h-100% font-mono"
+                onChange={(val) => setScript(val || "")}
               />
               <div className="flex items-center gap-4">
                 <label>
@@ -184,15 +186,17 @@ end`);
                   <video
                     src={videoUrl}
                     controls
-                    className="w-full h-64"
                     crossOrigin="anonymous"
+                    onLoadedMetadata={(e) => {
+                      const video = e.currentTarget;
+                      video.width = video.videoWidth;
+                      video.height = video.videoHeight;
+                    }}
                   />
-                  <a href={videoUrl} download="artc_video.mp4">
-                    <Button variant="default">
-                      <Download className="w-4 h-4 mr-1" />
-                      Download
-                    </Button>
-                  </a>
+                  <Button onClick={downloadVideo} variant="default" disabled={loading || !videoUrl}>
+                    <Download className="w-4 h-4 mr-1" />
+                    Download
+                  </Button>
                 </>
               ) : (
                 <p className="text-sm text-gray-500">No video generated yet.</p>
