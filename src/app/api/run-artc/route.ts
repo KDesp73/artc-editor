@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
             output: stdout + (stderr ? `\n[stderr]\n${stderr}` : ""),
             url: `/videos/${filename}.mp4`
         });
-    } catch (err: any) {
+    } catch (err) {
         return Response.json({
-            error: err.message || "Failed to run artc script",
+            error: (err as Error).message || "Failed to run artc script",
         }, { status: 500 });
     }
 }
