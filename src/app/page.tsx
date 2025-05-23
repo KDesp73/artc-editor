@@ -15,86 +15,90 @@ export default function ArtcLuaEditor() {
   const [script, setScript] = useState(`-- artc example script
 window(800, 800)
 bg("#000014")
-seed(42)
 
-local particles = {}
-local count = 200
 local centerX, centerY = 400, 400
+local cube = {}
+local lines = {}
+local size = 100
 
 function setup()
-    for i = 1, count do
-        local angle = (i / count) * math.pi * 2
-        local radius = math.random(50, 300)
-        local size = math.random(4, 12)
-        local speed = 0.5 + math.random() * 1.5
-
-        local id = circle({
-            x = centerX + math.cos(angle) * radius,
-            y = centerY + math.sin(angle) * radius,
-            size = size,
-            color = "#ffffff",
-            motion = "none",
-            speed = 0
-        })
-
-        particles[i] = {
-            id = id,
-            angle = angle,
-            radius = radius,
-            size = size,
-            speed = speed,
-            offset = math.random() * 2 * math.pi
+    local function addPoint(x, y, z)
+        return {
+            x = x, y = y, z = z,
+            id = circle({
+                x = 0, y = 0, size = 4,
+                color = "#ffffff", motion = "none", speed = 0
+            })
         }
+    end
+
+    local s = size
+    -- Define 8 cube vertices
+    cube = {
+        addPoint(-s, -s, -s), addPoint(s, -s, -s),
+        addPoint(s, s, -s), addPoint(-s, s, -s),
+        addPoint(-s, -s, s), addPoint(s, -s, s),
+        addPoint(s, s, s), addPoint(-s, s, s),
+    }
+
+    local edges = {
+        {1,2},{2,3},{3,4},{4,1}, -- back face
+        {5,6},{6,7},{7,8},{8,5}, -- front face
+        {1,5},{2,6},{3,7},{4,8}  -- connections
+    }
+
+    -- Draw edges as lines
+    for _, edge in ipairs(edges) do
+        table.insert(lines, {
+            a = edge[1], b = edge[2],
+            id = line({
+                x1 = 0, y1 = 0, x2 = 0, y2 = 0,
+                color = "#8888ff"
+            })
+        })
     end
 end
 
-function hslToRgb(h, s, l)
-    if s == 0 then
-        local gray = l * 255
-        return gray, gray, gray
-    else
-        local function hue2rgb(p, q, t)
-            if t < 0 then t = t + 1 end
-            if t > 1 then t = t - 1 end
-            if t < 1/6 then return p + (q - p) * 6 * t end
-            if t < 1/2 then return q end
-            if t < 2/3 then return p + (q - p) * (2/3 - t) * 6 end
-            return p
-        end
+-- 3D rotation function
+local function rotate(point, t)
+    local x, y, z = point.x, point.y, point.z
 
-        local q = l < 0.5 and l * (1 + s) or l + s - l * s
-        local p = 2 * l - q
-        local r = hue2rgb(p, q, h + 1/3)
-        local g = hue2rgb(p, q, h)
-        local b = hue2rgb(p, q, h - 1/3)
-        return r * 255, g * 255, b * 255
-    end
+    -- Rotate around Y axis
+    local sinY, cosY = math.sin(t), math.cos(t)
+    x, z = x * cosY - z * sinY, x * sinY + z * cosY
+
+    -- Rotate around X axis
+    local sinX, cosX = math.sin(t * 0.6), math.cos(t * 0.6)
+    y, z = y * cosX - z * sinX, y * sinX + z * cosX
+
+    return x, y, z
+end
+
+-- Perspective projection
+local function project(x, y, z)
+    local scale = 400 / (z + 400)
+    return centerX + x * scale, centerY + y * scale
 end
 
 function update(dt)
     local t = time() * 0.001
 
-    for i = 1, #particles do
-        local p = particles[i]
-        local a = p.angle + t * p.speed
-        local r = p.radius + math.sin(t * 0.5 + i) * 10
+    local positions = {}
 
-        local x = centerX + math.cos(a + p.offset) * r
-        local y = centerY + math.sin(a + p.offset) * r
-
-        -- Create smooth hue cycling
-        local hue = (t * 0.05 + i / count) % 1.0
-        local lightness = 0.4 + 0.3 * math.sin(t * 2 + i)
-        local r, g, b = hslToRgb(hue, 1.0, lightness)
-
-        modify(p.id, {
-            x = x,
-            y = y,
-            color = hex({ r = r, g = g, b = b }),
-            size = p.size + math.sin(t + i) * 1.5
-        })
+    for i, p in ipairs(cube) do
+        local x, y, z = rotate(p, t)
+        local px, py = project(x, y, z)
+        modify(p.id, { x = px, y = py })
+        positions[i] = { x = px, y = py }
     end
-end`);
+
+    for _, l in ipairs(lines) do
+        local a = positions[l.a]
+        local b = positions[l.b]
+        modify(l.id, { x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y })
+    end
+end
+`);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [view, setView] = useState("editor");
