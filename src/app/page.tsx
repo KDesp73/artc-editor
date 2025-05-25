@@ -150,9 +150,9 @@ end
         setError("No video URL returned from server.");
         console.error("No video_url in response", data);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to render script:", err);
-      setError(err.message || "An unknown error occurred.");
+      setError((err as Error).message || "An unknown error occurred.");
     }
 
     setLoading(false);
