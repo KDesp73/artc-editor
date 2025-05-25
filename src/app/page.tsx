@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Play, Download, Loader2 } from "lucide-react";
+import { Play, Download, Loader2, Sun, Moon } from "lucide-react";
 import Editor from "@monaco-editor/react";
-import { Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export default function ArtcLuaEditor() {
@@ -104,11 +103,10 @@ end
   const [view, setView] = useState("editor");
   const [loading, setLoading] = useState(false);
   const [duration, setDuration] = useState(10);
-  
-  // Monaco theme state synced with next-themes theme
+  const [error, setError] = useState<string | null>(null);
+
   const [monacoTheme, setMonacoTheme] = useState<"vs-dark" | "light">("vs-dark");
 
-  // Sync monacoTheme with current theme on mount and theme change
   useEffect(() => {
     if (theme === "dark") {
       setMonacoTheme("vs-dark");
@@ -120,6 +118,7 @@ end
   const runScript = async () => {
     setLoading(true);
     setVideoUrl(null);
+    setError(null);
     setView("output");
 
     try {
@@ -127,17 +126,33 @@ end
       const res = await fetch(`${service}/render`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script, duration: duration * 2 }), // Service returns video with half duration
+        body: JSON.stringify({ script, duration: duration * 2 }),
       });
+
+      if (!res.ok) {
+          const e = await res.json();
+          const rawDetail = e.detail;
+
+          // Remove b"" if present and unescape \n
+          const cleaned = rawDetail
+          .replace(/^b?"/, "")         // remove leading b" or "
+          .replace(/"$/, "")           // remove trailing "
+          .replace(/\\n/g, "\n")       // convert literal \n to real newlines
+          .replace(/\[ERRO\] ?/g, "")  // remove all [ERRO] tags
+
+          throw new Error(cleaned.trim());
+      }
 
       const data = await res.json();
       if (data.video_url) {
         setVideoUrl(data.video_url);
       } else {
-        console.error("No video_url in response");
+        setError("No video URL returned from server.");
+        console.error("No video_url in response", data);
       }
-    } catch (err) {
-      console.error("Failed to render script", err);
+    } catch (err: any) {
+      console.error("Failed to render script:", err);
+      setError(err.message || "An unknown error occurred.");
     }
 
     setLoading(false);
@@ -185,7 +200,6 @@ end
     }
   };
 
-  // Theme toggle handler
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
@@ -258,6 +272,10 @@ end
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Rendering video...
                 </p>
+              ) : error ? (
+                <p className="text-sm text-red-500">
+                  <strong>Error:</strong> {error}
+                </p>
               ) : videoUrl ? (
                 <>
                   <video
@@ -275,9 +293,15 @@ end
                     Download
                   </Button>
                 </>
-              ) : (
-                <p className="text-sm text-gray-500">No video generated yet.</p>
-              )}
+              ) : (<>
+                {error ? (
+                  <pre className="text-sm text-red-500 whitespace-pre-wrap">
+                    <strong>Error:</strong> {error}
+                  </pre>
+                ) : (
+                  <p className="text-sm text-gray-500">No video generated yet.</p>
+                )}
+              </>)}
             </CardContent>
           </Card>
         </TabsContent>
