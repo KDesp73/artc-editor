@@ -306,6 +306,9 @@ end
           </Card>
         </TabsContent>
       </Tabs>
+        <footer className="pt-8 text-center text-sm text-muted-foreground">
+          Made with ❤️ by <a href="https://github.com/KDesp73/artc" className="underline hover:text-primary" target="_blank" rel="noopener noreferrer">KDesp73</a>
+        </footer>
     </div>
   );
 }
