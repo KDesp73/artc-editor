@@ -11,7 +11,18 @@ import { useTheme } from "next-themes";
 export default function ArtcLuaEditor() {
   const { theme, setTheme } = useTheme();
 
-  const [script, setScript] = useState(`-- write your script :)`);
+  const [script, setScript] = useState(`-- write your script :)
+window(800, 800)
+palette("catppuccin")
+bg(palette.black)
+fps(30)
+
+function setup()
+end
+
+function update(dt)
+end
+  `);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [view, setView] = useState("editor");
