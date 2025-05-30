@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Play, Download, Loader2, Sun, Moon } from "lucide-react";
+import { Play, Download, Loader2, Sun, Moon, HelpCircle, X } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "next-themes";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ArtcLuaEditor() {
   const { theme, setTheme } = useTheme();
@@ -29,8 +30,12 @@ end
   const [loading, setLoading] = useState(false);
   const [duration, setDuration] = useState(10);
   const [error, setError] = useState<string | null>(null);
-
   const [monacoTheme, setMonacoTheme] = useState<"vs-dark" | "light">("vs-dark");
+
+  const [showHelp, setShowHelp] = useState(false);
+  const [apiHelpText, setApiHelpText] = useState("");
+  const [loadingHelp, setLoadingHelp] = useState(false);
+  const [helpError, setHelpError] = useState<string | null>(null);
 
   useEffect(() => {
     if (theme === "dark") {
@@ -39,6 +44,22 @@ end
       setMonacoTheme("light");
     }
   }, [theme]);
+
+  useEffect(() => {
+    if (showHelp) {
+      setLoadingHelp(true);
+      setHelpError(null);
+
+      fetch("https://raw.githubusercontent.com/KDesp73/artc/refs/heads/main/artc.lua")
+        .then((res) => {
+          if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
+          return res.text();
+        })
+        .then(setApiHelpText)
+        .catch((err) => setHelpError(err.message))
+        .finally(() => setLoadingHelp(false));
+    }
+  }, [showHelp]);
 
   const runScript = async () => {
     setLoading(true);
@@ -55,17 +76,16 @@ end
       });
 
       if (!res.ok) {
-          const e = await res.json();
-          const rawDetail = e.detail;
+        const e = await res.json();
+        const rawDetail = e.detail;
 
-          // Remove b"" if present and unescape \n
-          const cleaned = rawDetail
-          .replace(/^b?"/, "")         // remove leading b" or "
-          .replace(/"$/, "")           // remove trailing "
-          .replace(/\\n/g, "\n")       // convert literal \n to real newlines
-          .replace(/\[ERRO\] ?/g, "")  // remove all [ERRO] tags
+        const cleaned = rawDetail
+          .replace(/^b?"/, "")
+          .replace(/"$/, "")
+          .replace(/\\n/g, "\n")
+          .replace(/\[ERRO\] ?/g, "");
 
-          throw new Error(cleaned.trim());
+        throw new Error(cleaned.trim());
       }
 
       const data = await res.json();
@@ -133,10 +153,16 @@ end
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Artc Lua Script Editor</h1>
-        <Button variant="ghost" onClick={toggleTheme} className="flex items-center gap-2">
-          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          {theme === "dark" ? "Light" : "Dark"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowHelp(true)}>
+            <HelpCircle className="w-4 h-4 mr-2" />
+            API Help
+          </Button>
+          <Button variant="ghost" onClick={toggleTheme} className="flex items-center gap-2">
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === "dark" ? "Light" : "Dark"}
+          </Button>
+        </div>
       </div>
 
       <Tabs value={view} onValueChange={setView} className="space-y-2">
@@ -155,7 +181,7 @@ end
                 value={script}
                 onChange={(val) => setScript(val || "")}
               />
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <label>
                   Duration (seconds):
                   <input
@@ -218,22 +244,46 @@ end
                     Download
                   </Button>
                 </>
-              ) : (<>
-                {error ? (
-                  <pre className="text-sm text-red-500 whitespace-pre-wrap">
-                    <strong>Error:</strong> {error}
-                  </pre>
-                ) : (
-                  <p className="text-sm text-gray-500">No video generated yet.</p>
-                )}
-              </>)}
+              ) : (
+                <p className="text-sm text-gray-500">No video generated yet.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-        <footer className="pt-8 text-center text-sm text-muted-foreground">
-          Made with ❤️ by <a href="https://github.com/KDesp73/artc" className="underline hover:text-primary" target="_blank" rel="noopener noreferrer">KDesp73</a>
-        </footer>
+
+      <footer className="pt-8 text-center text-sm text-muted-foreground">
+        Made with ❤️ by <a href="https://github.com/KDesp73/artc" className="underline hover:text-primary" target="_blank" rel="noopener noreferrer">KDesp73</a>
+      </footer>
+
+      {showHelp && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 max-w-2xl w-full relative">
+            <Button
+              onClick={() => setShowHelp(false)}
+              className="absolute top-2 right-2"
+              variant="ghost"
+              size="icon"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <HelpCircle className="w-5 h-5" /> Lua API Reference
+            </h2>
+            <ScrollArea className="h-[60vh]">
+              {loadingHelp ? (
+                <p className="text-sm text-gray-500 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading help...
+                </p>
+              ) : helpError ? (
+                <p className="text-sm text-red-500">Error: {helpError}</p>
+              ) : (
+                <pre className="whitespace-pre-wrap text-sm">{apiHelpText}</pre>
+              )}
+            </ScrollArea>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
